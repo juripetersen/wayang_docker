@@ -1,0 +1,76 @@
+FROM maven:3.9.4-eclipse-temurin-11-focal
+
+USER root
+
+RUN apt update && apt-get install -y \
+    curl \
+    gnupg \
+    libsnappy-dev \
+    libzip-dev \
+    openssl
+
+# Install Scala kernel
+ENV SCALA_VERSION=2.12.4 \
+    SCALA_HOME=/usr/share/scala
+
+# NOTE: bash is used by scala/scalac scripts, and it cannot be easily replaced with ash.
+RUN apt-get install wget ca-certificates && \
+    apt-get install bash curl jq && \
+    cd "/tmp" && \
+    wget --no-verbose "https://downloads.typesafe.com/scala/${SCALA_VERSION}/scala-${SCALA_VERSION}.tgz" && \
+    tar xzf "scala-${SCALA_VERSION}.tgz" && \
+    mkdir "${SCALA_HOME}" && \
+    rm "/tmp/scala-${SCALA_VERSION}/bin/"*.bat && \
+    mv "/tmp/scala-${SCALA_VERSION}/bin" "/tmp/scala-${SCALA_VERSION}/lib" "${SCALA_HOME}" && \
+    ln -s "${SCALA_HOME}/bin/"* "/usr/bin/" && \
+    rm -rf "/tmp/"*
+
+#RUN export PATH="/usr/local/sbt/bin:$PATH" && \
+#    apk update && apk add ca-certificates wget tar && \
+#    mkdir -p "/usr/local/sbt" && \
+#    wget -qO - --no-check-certificate "https://cocl.us/sbt-0.13.16.tgz" | \
+#    tar xz -C /usr/local/sbt --strip-components=1 && sbt sbtVersion
+
+
+# Install Hadoop
+ENV HADOOP_VERSION  3.3.0
+ENV HADOOP_HOME     /usr/local/hadoop
+ENV HADOOP_OPTS     -Djava.library.path=/usr/local/hadoop/lib/native
+ENV PATH            $PATH:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin
+
+RUN curl http://archive.apache.org/dist/hadoop/core/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz --output hadoop-${HADOOP_VERSION}.tar.gz \
+ && tar -zxf hadoop-${HADOOP_VERSION}.tar.gz \
+ && rm hadoop-${HADOOP_VERSION}.tar.gz \
+ && mv hadoop-${HADOOP_VERSION} ${HADOOP_HOME} \
+ && mkdir -p /usr/local/hadoop/logs
+
+# PORTS
+# http://docs.hortonworks.com/HDPDocuments/HDP2/HDP-2.3.0/bk_HDP_Reference_Guide/content/reference_chap2.html
+# http://www.cloudera.com/content/cloudera/en/documentation/core/latest/topics/cdh_ig_ports_cdh5.html
+# http://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/core-default.xml
+# http://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-hdfs/hdfs-default.xml
+
+# HDFS: NameNode (NN):
+#   9000  = fs.defaultFS			(IPC / File system metadata operations)
+#   8022  = dfs.namenode.servicerpc-address	(optional port used by HDFS daemons to avoid sharing RPC port)
+#   50070 = dfs.namenode.http-address	(HTTP  / NN Web UI)
+#   50470 = dfs.namenode.https-address	(HTTPS / Secure UI)
+# HDFS: DataNode (DN):
+#   50010 = dfs.datanode.address		(Data transfer)
+#   50020 = dfs.datanode.ipc.address	(IPC / metadata operations)
+#   50075 = dfs.datanode.http.address	(HTTP  / DN Web UI)
+#   50475 = dfs.datanode.https.address	(HTTPS / Secure UI)
+# HDFS: Secondary NameNode (SNN)
+#   50090 = dfs.secondary.http.address	(HTTP / Checkpoint for NameNode metadata)
+EXPOSE 9000 50070 50010 50020 50075 50090
+
+# Install Spark
+ENV SPARK_VERSION 3.5.0
+ENV SPARK_HOME    /usr/local/spark
+ENV SPARK_DIST_CLASSPATH="$HADOOP_HOME/etc/hadoop/*:$HADOOP_HOME/share/hadoop/common/lib/*:$HADOOP_HOME/share/hadoop/common/*:$HADOOP_HOME/share/hadoop/hdfs/*:$HADOOP_HOME/share/hadoop/hdfs/lib/*:$HADOOP_HOME/share/hadoop/hdfs/*:$HADOOP_HOME/share/hadoop/yarn/lib/*:$HADOOP_HOME/share/hadoop/yarn/*:$HADOOP_HOME/share/hadoop/mapreduce/lib/*:$HADOOP_HOME/share/hadoop/mapreduce/*:$HADOOP_HOME/share/hadoop/tools/lib/*"
+ENV PATH          $PATH:${SPARK_HOME}/bin
+
+RUN curl https://dlcdn.apache.org/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz --output spark-${SPARK_VERSION}-bin-hadoop3.tgz  \
+ && tar -zxf spark-${SPARK_VERSION}-bin-hadoop3.tgz \
+ && rm spark-${SPARK_VERSION}-bin-hadoop3.tgz \
+ && mv spark-${SPARK_VERSION}-bin-hadoop3 ${SPARK_HOME}

@@ -1,0 +1,31 @@
+version: '3.3'
+name: apache-wayang
+
+services:
+  base:
+    container_name: apache-wayang-base
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.base
+
+  app:
+    container_name: apache-wayang-app
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.app
+    depends_on:
+      - base
+    ports:
+      - 8888:8888
+    volumes:
+      - ./:/var/www/html
+    tty: true
+    restart: always
+
+  tpch:
+    container_name: apache-wayang-tpch
+    image: ghcr.io/databloom-ai/tpch-docker:main
+    tty: true
+    volumes:
+      - ./data/:/data
+    restart: always
