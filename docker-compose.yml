@@ -24,7 +24,7 @@ services:
 
   tpch:
     container_name: apache-wayang-tpch
-    image: ghcr.io/databloom-ai/tpch-docker:main
+    image: ghcr.io/scalytics/tpch-docker:main
     tty: true
     volumes:
       - ./data/:/data

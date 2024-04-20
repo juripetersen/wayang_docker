@@ -7,7 +7,12 @@ RUN apt update && apt-get install -y \
     gnupg \
     libsnappy-dev \
     libzip-dev \
-    openssl
+    openssl \
+    python \
+    pip \
+    python3.8-venv \
+    unzip
+
 
 # Install Scala kernel
 ENV SCALA_VERSION=2.12.4 \
