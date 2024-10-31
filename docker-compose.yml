@@ -19,13 +19,76 @@ services:
       - 8888:8888
     volumes:
       - ./:/var/www/html
+      - ./.m2/repository:/root/.m2/repository
     tty: true
     restart: always
 
+  spark-cluster:
+    container_name: apache-wayang-spark-cluster
+    image: bitnami/spark:latest
+    ports:
+      - 9090:8080
+      - 7077:7077
+    volumes:
+       - ./data:/opt/spark-data
+    environment:
+       - SPARK_MODE=master
+       - SPARK_RPC_AUTHENTICATION_ENABLED=no
+       - SPARK_RPC_ENCRYPTION_ENABLED=no
+       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+       - SPARK_SSL_ENABLED=no
+       - SPARK_USER=spark
+    tty: true
+
+  spark-worker:
+    container_name: apache-wayang-spark-worker
+    image: bitnami/spark:latest
+    volumes:
+       - ./:/var/www/html/
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-cluster:7077
+      - SPARK_WORKER_MEMORY=16G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+    tty: true
+
+  flink-cluster:
+    image: flink:latest
+    ports:
+      - 8081:8081
+      - 6123:6123
+    volumes:
+       - ./data:/opt/flink-data
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-cluster
+
+  flink-worker:
+    image: flink:latest
+    depends_on:
+      - flink-cluster
+    command: taskmanager
+    scale: 1
+    volumes:
+       - ./:/var/www/html/
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-cluster
+        taskmanager.numberOfTaskSlots: 2
+
   tpch:
     container_name: apache-wayang-tpch
-    image: ghcr.io/scalytics/tpch-docker:main
+    image: ghcr.io/databloom-ai/tpch-docker:main
     tty: true
     volumes:
       - ./data/:/data
     restart: always
+
