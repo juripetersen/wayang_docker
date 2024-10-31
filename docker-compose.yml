@@ -1,14 +1,15 @@
-version: '3.3'
 name: apache-wayang
 
 services:
   base:
+    platform: linux/arm64
     container_name: apache-wayang-base
     build:
       context: .
       dockerfile: ./docker/Dockerfile.base
 
   app:
+    platform: linux/arm64
     container_name: apache-wayang-app
     build:
       context: .
@@ -19,7 +20,7 @@ services:
       - 8888:8888
     volumes:
       - ./:/var/www/html
-      - ./.m2/repository:/root/.m2/repository
+      - ./.m2/repository/:/root/.m2/repository
     tty: true
     restart: always
 
@@ -85,10 +86,11 @@ services:
         taskmanager.numberOfTaskSlots: 2
 
   tpch:
+    platform: linux/amd64
     container_name: apache-wayang-tpch
     image: ghcr.io/databloom-ai/tpch-docker:main
     tty: true
     volumes:
-      - ./data/:/data
+       - ./:/var/www/html/
     restart: always
 

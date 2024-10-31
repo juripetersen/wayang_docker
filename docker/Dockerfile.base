@@ -1,12 +1,11 @@
-FROM maven:3.9.4-eclipse-temurin-11-focal
+FROM maven:3.9-eclipse-temurin-11-focal
 
 USER root
 
 RUN apt update && \
-    apt upgrade -y && \
+    apt-get update && \
     apt-get install -y software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa -y && \
-    apt update && \
     apt-get install -y \
     g++ \
     curl \
@@ -115,4 +114,6 @@ RUN curl https://archive.apache.org/dist/giraph/giraph-${GIRAPH_VERSION}/giraph-
  && tar -zxf giraph-dist-${GIRAPH_VERSION}-hadoop1-bin.tar.gz \
  && rm giraph-dist-${GIRAPH_VERSION}-hadoop1-bin.tar.gz \
  && mv giraph-${GIRAPH_VERSION}-hadoop1-for-hadoop-1.2.1 ${GIRAPH_HOME}
+
+
 
